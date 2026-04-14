@@ -19,4 +19,5 @@ Route::middleware('auth:api')->group(function () {
     // =========VM===========
 
     Route::get('vms', [VmController::class, 'index']);
+    Route::post('vms', [VmController::class, 'store']);
 });
