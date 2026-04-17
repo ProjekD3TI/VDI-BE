@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->string('nim')->unique()->nullable();
             $table->enum('role', ['admin', 'user'])->default('user');
             $table->integer('angkatan_id')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

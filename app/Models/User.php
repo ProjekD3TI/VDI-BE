@@ -51,6 +51,10 @@ class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
         ];
     }
+    public function vms()
+    {
+        $this->hasOne(VMs::class);
+    }
     public function getJWTIdentifier()
     {
         return $this->getKey();

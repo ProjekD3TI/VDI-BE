@@ -3,37 +3,58 @@
 
 namespace App\Jobs;
 
+use App\Services\GuacamoleService;
 use App\Services\ProxmoxServices;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 class CreateVmJob implements ShouldQueue
 {
-    use Dispatchable, Queueable;
+    use Dispatchable, Queueable, SerializesModels;
 
-    protected $data;
+    protected $VmData;
     public $timeout = 300;
-    public function __construct($data)
+    public function __construct($VmData)
     {
-        $this->data = $data;
+        $this->VmData = $VmData;
     }
 
-    public function handle(ProxmoxServices $proxmox): void
+    public function handle(ProxmoxServices $proxmox, GuacamoleService $guacamole): void
     {
         try {
-            $upid = $proxmox->cloneVm($this->data);
+            Log::info('Start VM creation', $this->VmData);
 
+            // 1. Clone VM
+            $upid = $proxmox->cloneVm($this->VmData);
+            Log::info('Clone started', ['upid' => $upid]);
+
+            // 2. Wait clone selesai
             $proxmox->waitForTask($upid);
+            Log::info('Clone finished');
 
-            sleep(5); // penting
+            // 3. Config VM (cloud-init)
+            $proxmox->configVm($this->VmData);
+            Log::info('VM configured');
 
-            $proxmox->configVm($this->data);
-
+            // 4. Create User di Apache Guacamole
+            $guacamoleUser = $guacamole->createUser([
+                'username' => $this->VmData['username'],
+                'password' => $this->VmData['password'], // Gunakan plaintext
+                'name' => $this->VmData['name'],
+                'email' => $this->VmData['email'],
+                'role' => $this->VmData['role']
+            ]);
+            Log::info('User successfully created in Guacamole', ['guac_response' => $guacamoleUser]);
         } catch (\Throwable $th) {
-            Log::error('VM creation failed: ' . $th->getMessage());
-            throw $th; // biar masuk failed_jobs
+            Log::error('VM creation failed', [
+                'error' => $th->getMessage(),
+                'data' => $this->VmData
+            ]);
+
+            throw $th; // biar bisa retry kalau queue gagal
         }
     }
 }
