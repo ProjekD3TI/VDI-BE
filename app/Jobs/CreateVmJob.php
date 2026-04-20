@@ -48,6 +48,21 @@ class CreateVmJob implements ShouldQueue
                 'role' => $this->VmData['role']
             ]);
             Log::info('User successfully created in Guacamole', ['guac_response' => $guacamoleUser]);
+
+            // 5. Create VNC Connection di Guacamole
+            $connectionName = "VM - " . $this->VmData['username'];
+            $connection = $guacamole->createConnection([
+                'name' => $connectionName,
+                'ip_address' => $this->VmData['ip_address']
+            ]);
+            Log::info('Connection created in Guacamole', ['connection_id' => $connection['identifier']]);
+
+            // 6. Assign User ke Connection
+            $guacamole->assignUserToConnection(
+                $this->VmData['username'],
+                $connection['identifier'] // Gunakan Identifier hasil dari step 5
+            );
+            Log::info('User successfully assigned to connection');
         } catch (\Throwable $th) {
             Log::error('VM creation failed', [
                 'error' => $th->getMessage(),
