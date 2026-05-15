@@ -41,7 +41,7 @@ class VmController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'template_id' => 'required',
-            'ip_address' => 'required|ip'
+            'ip_address' => 'required|ip',
         ]);
 
         $user = User::findOrFail($request->user_id);
@@ -60,6 +60,7 @@ class VmController extends Controller
         ]);
         $vmid = (int) $matches[0];
         $vmData = [
+            "user_id" => $user->id,
             "template_id" => $request->template_id,
             "vmid" => $vmid,
             "name" => $user->name,

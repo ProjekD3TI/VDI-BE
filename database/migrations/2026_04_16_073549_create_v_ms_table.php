@@ -10,11 +10,14 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('vms', function (Blueprint $table) {
+        Schema::create('v_ms', function (Blueprint $table) {
             $table->id();
+            $table->integer('vmid')->unique();
+            $table->integer('guac_connection_id')->nullable()->unique();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->ipAddress('ip_address');
-            $table->enum('status',['running','stopped']);
+            $table->ipAddress('ip_address')->unique();
+            $table->integer('template_id');
+            $table->enum('status', ['running', 'stopped'])->default('stopped');
             $table->timestamps();
         });
     }

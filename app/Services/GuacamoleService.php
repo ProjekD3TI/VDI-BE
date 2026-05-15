@@ -3,6 +3,7 @@ namespace App\Services;
 
 use Exception;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class GuacamoleService
 {
@@ -70,6 +71,10 @@ class GuacamoleService
             $this->baseURL . '/api/session/data/' . $auth['dataSource'] . '/users?token=' . $auth['authToken'],
             $payload
         );
+        Log::info('Guacamole raw response', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+        ]);
 
         if ($response->failed()) {
             throw new Exception('Guacamole Error: ' . $response->body());

@@ -4,6 +4,7 @@
 namespace App\Jobs;
 
 use App\Mail\VmCredentialMail;
+use App\Models\VMs;
 use App\Services\GuacamoleService;
 use App\Services\ProxmoxServices;
 use Illuminate\Bus\Queueable;
@@ -65,6 +66,15 @@ class CreateVmJob implements ShouldQueue
                 $connection['identifier'] // Gunakan Identifier hasil dari step 5
             );
             Log::info('User successfully assigned to connection');
+
+
+            VMs::create([
+                'user_id' => $this->VmData['user_id'],
+                'vmid' => $this->VmData['vmid'],
+                'ip_address' => $this->VmData['ip_address'],
+                'guac_connection_id' => $connection['identifier'],
+                'template_id' => $this->VmData['template_id']
+            ]);
 
             Mail::to($this->VmData['email'])->send(new VmCredentialMail($this->VmData));
             Log::info('Credential email send to ' . $this->VmData['email']);
