@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\CreateVmJob;
+use App\Jobs\DeleteVmJob;
 use App\Models\User;
+use App\Models\VMs;
 use App\Services\ProxmoxServices;
 use Exception;
 use Illuminate\Http\Request;
@@ -76,5 +78,24 @@ class VmController extends Controller
             'message' => 'VM creation queued',
             'data' => $vmData
         ]);
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $vm = VMs::findOrFail($id);
+
+            dispatch(new DeleteVmJob($vm->id));
+            return response()->json([
+                'message' => 'Proses penghapusan VM telah di masukkan ke Antrean.',
+                'data' => $vm->vmid,
+                'ip_address' => $vm->ip_address
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal memicu penghapusan VM',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

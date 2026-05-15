@@ -19,6 +19,7 @@ Route::middleware('auth:api')->group(function () {
         // =========VM===========
         Route::get('vms', [VmController::class, 'index']);
         Route::post('vms', [VmController::class, 'store']);
+        Route::delete('vms/{id}', [VmController::class, 'destroy']);
 
         // =========AG===========
         Route::get('guacamole/users', [GuacamoleController::class, 'getUsers']);

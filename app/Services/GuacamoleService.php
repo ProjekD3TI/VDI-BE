@@ -144,5 +144,34 @@ class GuacamoleService
 
         return $response->successful();
     }
+
+    public function deleteConnection($identifier)
+    {
+        $auth = $this->getToken();
+        $response = Http::delete(
+            $this->baseURL . '/api/session/data/' . $auth['dataSource'] . '/connections/' . $identifier . '?token=' . $auth['authToken']
+        );
+
+        if ($response->failed() && $response->status() !== 404) {
+            throw new Exception('Guacamole delete Connection Error' . $response->body());
+        }
+
+        return $response->successful() || $response->status() === 404;
+    }
+
+    public function deleteUser($username)
+    {
+        $auth = $this->getToken();
+
+        $response = Http::delete(
+            $this->baseURL . '/api/session/data' . $auth['dataSource'] . '/users/' . $username . '?token=' . $auth['authToken']
+        );
+
+        if ($response->failed() && $response->status() !== 404) {
+            throw new Exception('Guacamole delete user Error' . $response->body());
+        }
+
+        return $response->successful() || $response->status() === 404;
+    }
 }
 

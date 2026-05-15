@@ -24,7 +24,7 @@ class ProxmoxServices
 
     protected function client()
     {
-        return Http::withHeaders([
+        return Http::timeout(60)->withHeaders([
             'Authorization' => "PVEAPIToken={$this->tokenId}={$this->tokenSecret}",
             'Accept' => 'application/json',
         ])->withoutVerifying();
