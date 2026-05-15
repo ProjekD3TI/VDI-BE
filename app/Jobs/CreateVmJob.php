@@ -71,8 +71,25 @@ class CreateVmJob implements ShouldQueue
         } catch (\Throwable $th) {
             Log::error('VM creation failed', [
                 'error' => $th->getMessage(),
-                'data' => $this->VmData
+                'data' => $this->VmData,
+                'vmid' => $this->VmData['vmid']
             ]);
+            try {
+                $proxmox->stopVM($this->VmData['vmid']);
+                Log::info('Rollback: Stop VM Command Send');
+
+                sleep(3);
+                $deleteUpid = $proxmox->deleteVm($this->VmData['vmid']);
+                Log::info('Rollback: start to Delete VM');
+
+                $proxmox->waitForTask($deleteUpid);
+                Log::info('Rollback: Vm succesfully deleted from Proxmox');
+            } catch (\Throwable $th) {
+                Log::critical('Critical: Rollback Failed', [
+                    'vmid' => $this->VmData['vmid'],
+                    'rollback_error' => $th->getMessage()
+                ]);
+            }
 
             throw $th; // biar bisa retry kalau queue gagal
         }

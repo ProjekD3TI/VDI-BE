@@ -120,7 +120,22 @@ class ProxmoxServices
         }
         return $response->json('data');
     }
+    public function stopVM($vmid)
+    {
+        $response = $this->client()->post("{$this->baseURL}/nodes/$this->node/qemu/{$vmid}/status/stop");
+        return $response->json();
+    }
 
+    public function deleteVm($vmid)
+    {
+        $response = $this->client()->delete("{$this->baseURL}/nodes/$this->node/qemu/{$vmid}");
+
+        if ($response->failed()) {
+            $this->handleError($response);
+        }
+
+        return $response->json('data');
+    }
     private function handleError(Response $response)
     {
         $errorData = $response->json();
