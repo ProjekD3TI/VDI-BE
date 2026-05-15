@@ -81,20 +81,15 @@ class GuacamoleService
     {
         $auth = $this->getToken();
 
-        // Ambil ID Group Mahasiswa dari .env. 
-        // Pastikan nilainya di-cast ke (string). Berdasarkan payload Anda, ID-nya adalah "1"
-        $parentIdentifier = (string) env('GUACAMOLE_MAHASISWA_GROUP_ID', '1');
-
         $payload = [
-            "parentIdentifier" => $parentIdentifier,
+            "parentIdentifier" => "ROOT", // Langsung ke root
             "name" => $data['name'],
             "protocol" => "vnc",
             "parameters" => [
                 "hostname" => $data['ip_address'],
                 "port" => "5901",
-                "password" => "password" // Hardcoded sesuai template VM Anda
+                "password" => "password"
             ],
-            // Guacamole wajib menerima key 'attributes' ini meskipun isinya kosong
             "attributes" => [
                 "max-connections" => "",
                 "max-connections-per-user" => "",
@@ -120,8 +115,12 @@ class GuacamoleService
     {
         $auth = $this->getToken();
 
-        // Format PATCH API Guacamole untuk menambahkan permission
         $payload = [
+            [
+                "op" => "add",
+                "path" => "/connectionGroupPermissions/ROOT", // Beri izin baca di level root
+                "value" => "READ"
+            ],
             [
                 "op" => "add",
                 "path" => "/connectionPermissions/" . $connectionIdentifier,
@@ -140,6 +139,5 @@ class GuacamoleService
 
         return $response->successful();
     }
-
 }
 
