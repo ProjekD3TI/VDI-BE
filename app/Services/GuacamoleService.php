@@ -163,12 +163,13 @@ class GuacamoleService
     {
         $auth = $this->getToken();
 
+        // Perbaikan: Tambahkan slash (/) setelah data dan perbaiki typo authToken
         $response = Http::delete(
-            $this->baseURL . '/api/session/data' . $auth['dataSource'] . '/users/' . $username . '?token=' . $auth['authToken']
+            $this->baseURL . '/api/session/data/' . $auth['dataSource'] . '/users/' . $username . '?token=' . $auth['authToken']
         );
 
         if ($response->failed() && $response->status() !== 404) {
-            throw new Exception('Guacamole delete user Error' . $response->body());
+            throw new Exception('Guacamole delete user Error: ' . $response->body());
         }
 
         return $response->successful() || $response->status() === 404;
