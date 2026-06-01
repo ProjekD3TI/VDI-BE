@@ -14,6 +14,8 @@ class AngkatanSeeder extends Seeder
     public function run(): void
     {
         Angkatan::insert([
+            ['angkatan' => 2021],
+            ['angkatan' => 2022],
             ['angkatan' => 2023],
             ['angkatan' => 2024],
             ['angkatan' => 2025],

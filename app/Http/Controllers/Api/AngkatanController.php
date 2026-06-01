@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Angkatan;
 use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
 class AngkatanController extends Controller
@@ -95,6 +96,11 @@ class AngkatanController extends Controller
             return response()->json([
                 'message' => 'berhasil menghapus angkatan'
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Data Tidak Ditemukan',
+                'error' => $e->getMessage()
+            ]);
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Gagal Menghapus angkatan',

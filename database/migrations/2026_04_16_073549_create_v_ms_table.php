@@ -14,8 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->integer('vmid')->unique();
             $table->integer('guac_connection_id')->nullable()->unique();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->ipAddress('ip_address')->unique();
+            $table->foreignId('user_id')->constrained()->restrictOnDelete();
+            $table->foreignId('ip_address_id')->unique()->constrained('ip_addresses')->onDelete('cascade');
             $table->integer('template_id');
             $table->enum('status', ['running', 'stopped'])->default('stopped');
             $table->timestamps();

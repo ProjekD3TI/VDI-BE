@@ -53,7 +53,7 @@ class User extends Authenticatable implements JWTSubject
     }
     public function vms()
     {
-        $this->hasOne(VMs::class);
+        return $this->hasOne(VMs::class,'user_id','id');
     }
     public function getJWTIdentifier()
     {
@@ -62,5 +62,9 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function angkatan(){
+        return $this->belongsTo(Angkatan::class);
     }
 }

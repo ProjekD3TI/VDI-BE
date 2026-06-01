@@ -45,7 +45,7 @@ class ProxmoxServices
             "{$this->baseURL}/nodes/{$this->node}/qemu/{$templateId}/clone",
             [
                 'newid' => $data['vmid'],
-                'name' => $data['name'] ?? 'vm-' . $data['vmid'],
+                'name' => $data['username'] ?? 'vm-' . $data['vmid'],
                 'full' => 1,
             ]
         );
@@ -99,7 +99,8 @@ class ProxmoxServices
     }
     public function startVm($vmid)
     {
-        $response = $this->client()->post(
+        // PERBAIKAN: Tambahkan asForm() agar tidak dikirim sebagai JSON Array kosong
+        $response = $this->client()->asForm()->post(
             "{$this->baseURL}/nodes/{$this->node}/qemu/{$vmid}/status/start"
         );
 
@@ -109,7 +110,6 @@ class ProxmoxServices
 
         return $response->json();
     }
-
     public function checkTaskStatus($upid)
     {
         $node = $this->node;
@@ -122,10 +122,17 @@ class ProxmoxServices
     }
     public function stopVM($vmid)
     {
-        $response = $this->client()->post("{$this->baseURL}/nodes/$this->node/qemu/{$vmid}/status/stop");
+        // Tambahkan juga asForm() di sini
+        $response = $this->client()->asForm()->post(
+            "{$this->baseURL}/nodes/{$this->node}/qemu/{$vmid}/status/stop"
+        );
+
+        if ($response->failed()) {
+            $this->handleError($response);
+        }
+
         return $response->json();
     }
-
     public function deleteVm($vmid)
     {
         $response = $this->client()->delete("{$this->baseURL}/nodes/$this->node/qemu/{$vmid}");
@@ -139,8 +146,18 @@ class ProxmoxServices
     private function handleError(Response $response)
     {
         $errorData = $response->json();
-        $errorMessage = $errorData['errors'] ?? $errorData['message'] ?? 'Proxmox API Error';
 
-        throw new Exception("Proxmox Error:" . json_encode($errorMessage));
+        // Ambil error dari JSON jika ada, jika tidak ada ambil body mentahnya
+        $errorMessage = $errorData['errors'] ?? $errorData['message'] ?? $response->body();
+
+        // Sertakan HTTP Status Code agar lebih jelas (misal: 401, 403, 500)
+        $statusCode = $response->status();
+
+        // Pastikan error message berbentuk string agar tidak error saat di json_encode/digabung
+        if (is_array($errorMessage)) {
+            $errorMessage = json_encode($errorMessage);
+        }
+
+        throw new Exception("Proxmox HTTP {$statusCode} - " . $errorMessage);
     }
 }

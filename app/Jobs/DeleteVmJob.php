@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Models\IpAddress;
 use App\Models\VMs;
 use App\Services\GuacamoleService;
 use App\Services\ProxmoxServices;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class DeleteVmJob implements ShouldQueue
 {
@@ -37,6 +39,7 @@ class DeleteVmJob implements ShouldQueue
         }
 
         $username = $vm->user->username ?? null;
+        $ipAddressId = $vm->ip_address_id; // Simpan ID IP Address sebelum VM dihapus
 
         Log::info("Memulai proses Delete VM untuk user: {$username}");
 
@@ -49,7 +52,7 @@ class DeleteVmJob implements ShouldQueue
                 $upid = $proxmox->deleteVm($vm->vmid);
                 $proxmox->waitForTask($upid);
                 Log::info("Proxmox: VM {$vm->vmid} berhasil dihapus.");
-            } catch (\Throwable $th) {
+            } catch (Throwable $th) {
                 Log::error("Proxmox: Gagal menghapus VM {$vm->vmid}", ['error' => $th->getMessage()]);
                 // Kita tidak throw error di sini agar step selanjutnya tetap berjalan
             }
@@ -60,7 +63,7 @@ class DeleteVmJob implements ShouldQueue
             try {
                 $guacamole->deleteConnection($vm->guac_connection_id);
                 Log::info("Guacamole: Connection {$vm->guac_connection_id} berhasil dihapus.");
-            } catch (\Throwable $th) {
+            } catch (Throwable $th) {
                 Log::error("Guacamole: Gagal menghapus koneksi", ['error' => $th->getMessage()]);
             }
         }
@@ -70,16 +73,29 @@ class DeleteVmJob implements ShouldQueue
             try {
                 $guacamole->deleteUser($username);
                 Log::info("Guacamole: User {$username} berhasil dihapus.");
-            } catch (\Throwable $th) {
+            } catch (Throwable $th) {
                 Log::error("Guacamole: Gagal menghapus user", ['error' => $th->getMessage()]);
             }
         }
 
-        // 5. Hapus Data dari Database Lokal
+        // 5. Kembalikan status IP Address menjadi 'free'
+        if ($ipAddressId) {
+            try {
+                $ipModel = IpAddress::find($ipAddressId);
+                if ($ipModel) {
+                    $ipModel->update(['status' => 'free']);
+                    Log::info("Database: IP Address {$ipModel->ip_address} berhasil dikembalikan ke status 'free'.");
+                }
+            } catch (Throwable $th) {
+                Log::error("Database: Gagal mengembalikan status IP Address", ['error' => $th->getMessage()]);
+            }
+        }
+
+        // 6. Hapus Data dari Database Lokal
         try {
             $vm->delete();
             Log::info("Database: Record VM berhasil dihapus secara lokal.");
-        } catch (\Throwable $th) {
+        } catch (Throwable $th) {
             Log::error("Database: Gagal menghapus record VM", ['error' => $th->getMessage()]);
             throw $th; // Jika gagal hapus DB, Job harus ditandai failed agar bisa di-retry
         }
