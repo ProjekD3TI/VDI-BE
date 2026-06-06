@@ -24,7 +24,7 @@ class UserFactory extends Factory
             'name' => $this->faker->name(),
             'username' => $this->faker->unique()->userName(),
             'role' => 'user', // Default langsung diset 'user'
-            'email' => $this->faker->unique()->safeEmail(),
+            'email' => $this->faker->unique()->firstName().'@student.uns.ac.id',
             'nim' => $randomNIM,
             'angkatan_id' => $this->faker->numberBetween(1, 5), // Menggenerates angka acak dari 1 sampai 5
         ];

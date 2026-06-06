@@ -33,8 +33,21 @@ class ProxmoxServices
     {
 
         $response = $this->client()->get("{$this->baseURL}/nodes/{$this->node}/qemu");
-
-        return $response->json('data');
+        if ($response->failed()) {
+            $this->handleError($response);
+        }
+        return collect($response->json('data'))
+            ->filter(fn($vm) => !isset($vm['template']) || $vm['template'] != 1)
+            ->values();
+        ;
+    }
+    public function getTemplate()
+    {
+        $response = $this->client()->get("{$this->baseURL}/nodes/{$this->node}/qemu");
+        if ($response->failed()) {
+            $this->handleError($response);
+        }
+        return collect($response->json('data'))->where('template', 1)->values()->all();
     }
 
     public function cloneVm($data)
@@ -145,19 +158,28 @@ class ProxmoxServices
     }
     private function handleError(Response $response)
     {
-        $errorData = $response->json();
+        $message = null;
 
-        // Ambil error dari JSON jika ada, jika tidak ada ambil body mentahnya
-        $errorMessage = $errorData['errors'] ?? $errorData['message'] ?? $response->body();
+        $json = $response->json();
 
-        // Sertakan HTTP Status Code agar lebih jelas (misal: 401, 403, 500)
-        $statusCode = $response->status();
+        if (is_array($json)) {
+            $message = $json['message'] ?? null;
 
-        // Pastikan error message berbentuk string agar tidak error saat di json_encode/digabung
-        if (is_array($errorMessage)) {
-            $errorMessage = json_encode($errorMessage);
+            if (!$message && isset($json['errors'])) {
+                $message = is_array($json['errors'])
+                    ? json_encode($json['errors'])
+                    : $json['errors'];
+            }
         }
 
-        throw new Exception("Proxmox HTTP {$statusCode} - " . $errorMessage);
+        if (!$message) {
+            $message = trim($response->body());
+        }
+
+        if (!$message) {
+            $message = "Proxmox API Error ({$response->status()})";
+        }
+
+        throw new Exception($message, $response->status());
     }
 }

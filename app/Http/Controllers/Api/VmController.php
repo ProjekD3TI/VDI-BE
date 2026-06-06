@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\ProxmoxException;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TemplateResource;
 use App\Http\Resources\VMResource;
 use App\Jobs\CreateVmJob;
 use App\Jobs\DeleteVmJob;
@@ -30,9 +32,7 @@ class VmController extends Controller
     public function index()
     {
         try {
-            $proxmoxVms = collect($this->proxmox->getVms())
-                ->filter(fn($vm) => !isset($vm['template']) || $vm['template'] != 1)
-                ->values();
+            $proxmoxVms = $this->proxmox->getVms();
 
             $localVms = Vms::with('ipAddress')
                 ->get()
@@ -51,7 +51,7 @@ class VmController extends Controller
             return response()->json([
                 'message' => 'failed to get vm',
                 'error' => $e->getMessage()
-            ], 500);
+            ], $e->getCode());
         }
     }
 
@@ -165,7 +165,6 @@ class VmController extends Controller
         $request->validate([
             'vmid' => 'required|integer|min:1'
         ]);
-
         try {
             // Memanggil method stopVM dari ProxmoxServices
             $result = $this->proxmox->stopVM($request->vmid);
@@ -180,6 +179,17 @@ class VmController extends Controller
                 'message' => "Gagal mematikan VM {$request->vmid}",
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+    public function getTemplate(){
+         try {
+           $templates = $this->proxmox->getTemplate();
+           return TemplateResource::collection($templates);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil Data Template',
+                'error' => $e->getMessage()
+            ],$e->getCode());
         }
     }
 }

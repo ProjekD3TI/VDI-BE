@@ -18,6 +18,7 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('admin')->group(function () {
         // =========VM===========
         Route::get('vms', [VmController::class, 'index']);
+        Route::get('vms/template',[VmController::class,'getTemplate']);
         Route::post('vms', [VmController::class, 'store']);
         Route::delete('vms/{id}', [VmController::class, 'destroy']);
         Route::post('vms/start', [VmController::class, 'startVm']);
