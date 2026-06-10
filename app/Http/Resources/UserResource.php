@@ -20,7 +20,8 @@ class UserResource extends JsonResource
             'username' => $this->username,
             'email' => $this->email,
             'nim' => $this->nim,
-            'has_vm' => $this->vms !== null,
+            'vm_status' => $this->vms?->status,
+            'vmid'=>$this->vms?->vmid ?? null,
             'angkatan' => $this->angkatan?->angkatan ?? 'Tidak Diketahui',
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
         ];

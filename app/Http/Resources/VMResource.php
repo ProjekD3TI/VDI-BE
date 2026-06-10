@@ -16,12 +16,10 @@ class VMResource extends JsonResource
     {
         return [
             'vmid' => $this['vmid'],
-            'name'=> $this['name'],
-            'storage' => $this['maxdisk'] ?? 0,
-            'ram' => $this['maxmem'] ?? 0,
-            'status' => $this['status'] ?? null,
-            'ip_address' => $this['local']?->ipAddress?->ip_address,
-            'template_id' => $this['local']?->template_id,
+            'name' => $this->user?->username,
+            'user' => $this->user?->name,
+            'ip_address' => $this->ipAddress?->ip_address,
+            'status' => $this['status'],
         ];
     }
 }

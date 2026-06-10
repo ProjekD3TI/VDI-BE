@@ -24,12 +24,13 @@ class CreateVmJob implements ShouldQueue
     public $timeout = 300;
     public function __construct($VmData)
     {
+
         $this->VmData = $VmData;
     }
 
     public function handle(ProxmoxServices $proxmox, GuacamoleService $guacamole): void
     {
-     $proxmoxVmCreated = false;
+        $proxmoxVmCreated = false;
         $guacUserCreated = false;
         $guacConnectionId = null;
 
@@ -40,9 +41,9 @@ class CreateVmJob implements ShouldQueue
             $upid = $proxmox->cloneVm($this->VmData);
             Log::info('Clone started', ['upid' => $upid]);
 
+            $proxmoxVmCreated = true;
             // 2. Wait clone selesai
             $proxmox->waitForTask($upid);
-            $proxmoxVmCreated = true; 
             Log::info('Clone finished');
 
             // 3. Config VM (cloud-init)
@@ -52,12 +53,12 @@ class CreateVmJob implements ShouldQueue
             // 4. Create User di Apache Guacamole
             $guacamoleUser = $guacamole->createUser([
                 'username' => $this->VmData['username'],
-                'password' => $this->VmData['password'], 
+                'password' => $this->VmData['password'],
                 'name' => $this->VmData['name'],
                 'email' => $this->VmData['email'],
                 'role' => $this->VmData['role']
             ]);
-            $guacUserCreated = true; 
+            $guacUserCreated = true;
             Log::info('User successfully created in Guacamole', ['guac_response' => $guacamoleUser]);
 
             // 5. Create VNC Connection di Guacamole
@@ -65,9 +66,9 @@ class CreateVmJob implements ShouldQueue
             $connectionName = "VM - " . $this->VmData['username'];
             $connection = $guacamole->createConnection([
                 'name' => $connectionName,
-                'ip_address' => $this->VmData['ip_address'] 
+                'ip_address' => $this->VmData['ip_address']
             ]);
-            $guacConnectionId = $connection['identifier']; 
+            $guacConnectionId = $connection['identifier'];
             Log::info('Connection created in Guacamole', ['connection_id' => $guacConnectionId]);
 
             // 6. Assign User ke Connection
@@ -78,14 +79,18 @@ class CreateVmJob implements ShouldQueue
             Log::info('User successfully assigned to connection');
 
             // 7. Simpan ke Database Lokal
-            // MENGGUNAKAN ip_address_id
-            VMs::create([
-                'user_id' => $this->VmData['user_id'],
-                'vmid' => $this->VmData['vmid'],
-                'ip_address_id' => $this->VmData['ip_address_id'], // Update disini
-                'guac_connection_id' => $guacConnectionId,
-                'template_id' => $this->VmData['template_id']
-            ]);
+            $vmRecord = VMs::where('vmid', $this->VmData['vmid'])->first();
+
+            if ($vmRecord) {
+                // Assign nilai satu per satu
+                $vmRecord->guac_connection_id = $guacConnectionId;
+                $vmRecord->status = 'stopped';
+
+                // Simpan perubahan
+                $vmRecord->save();
+
+                Log::info('Local DB record updated to stopped');
+            }
 
             // 8. Kirim Email
             Mail::to($this->VmData['email'])->send(new VmCredentialMail($this->VmData));
@@ -98,7 +103,7 @@ class CreateVmJob implements ShouldQueue
             ]);
 
             // --- PROSES ROLLBACK ---
-            
+
             // 0. Rollback Status IP Address kembali menjadi 'free'
             try {
                 $ipModel = IpAddress::find($this->VmData['ip_address_id']);
@@ -114,8 +119,10 @@ class CreateVmJob implements ShouldQueue
             try {
                 $localVm = VMs::where('vmid', $this->VmData['vmid'])->first();
                 if ($localVm) {
+                    // Pilihan 1: Hapus record sepenuhnya (seperti script awal Anda)
                     $localVm->delete();
-                    Log::info('Rollback: Local DB record deleted');
+
+                    Log::info('Rollback: Local DB record deleted/updated to failed');
                 }
             } catch (Throwable $dbEx) {
                 Log::error('Rollback Failed: Local DB deletion', ['error' => $dbEx->getMessage()]);
@@ -144,11 +151,15 @@ class CreateVmJob implements ShouldQueue
             // 4. Rollback Proxmox VM
             if ($proxmoxVmCreated) {
                 try {
+                    Log::info('Rollback: Waiting 15s for Proxmox to settle before unlocking...');
+                    sleep(15); // BERI JEDA agak lama agar I/O storage sedikit mereda
+                    $proxmox->unlockVm($this->VmData['vmid']);
+                    Log::info('Rollback: VM Unlocked');
                     $proxmox->stopVM($this->VmData['vmid']);
                     Log::info('Rollback: Stop VM Command Sent');
 
                     sleep(3); // Beri jeda agar VM benar-benar mati sebelum didelete
-                    
+
                     $deleteUpid = $proxmox->deleteVm($this->VmData['vmid']);
                     Log::info('Rollback: Start to Delete VM from Proxmox');
 

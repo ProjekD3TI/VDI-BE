@@ -10,7 +10,6 @@ use App\Models\User;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use PHPUnit\Metadata\RequiresPhpExtension;
 use Throwable;
 
 class UserController extends Controller
@@ -20,64 +19,71 @@ class UserController extends Controller
         try {
             $users = User::with(['vms', 'angkatan'])->where('role', 'user')->get();
             return response()->json([
-                'message' => 'berhasil mengambil list user',
+                'message' => 'Successfully retrieved user data',
                 'data' => UserResource::collection($users)
             ], 200);
         } catch (Throwable $th) {
             return response()->json([
-                'message' => 'gagal mengambil data user',
+                'message' => 'An error occurred while retrieving user data',
                 'error' => $th->getMessage()
-            ], 500);
+            ], $th->getCode());
         }
     }
     public function store(Request $request)
     {
-        $request->validate([
-            'nim' => [
-                'required',
-                'string',
-                'unique:users,nim',
-                'regex:/^V34\d{5}$/'
-            ],
-            'name' => [
-                'required',
-                'string',
-                'min:3'
-            ],
-            'username' => [
-                'required',
-                'string',
-                'min:3',
-                'unique:users,username',
-                'regex:/^[a-zA-Z0-9.-]+$/', // Hanya alfanumerik, titik, dan tanda hubung
-                'regex:/^[a-zA-Z0-9]/',     // Harus diawali huruf atau angka
-            ],
-            'email' => [
-                'required',
-                'email',
-                'unique:users,email',
-                'regex:/@student\.uns\.ac\.id$/' // Wajib berakhiran @student.uns.ac.id
-            ],
-            'angkatan_id' => [
-                'required',
-                'integer' // Sama seperti z.coerce.number
-            ],
-        ]);
+        try {
+            $request->validate([
+                'nim' => [
+                    'required',
+                    'string',
+                    'unique:users,nim',
+                    'regex:/^V34\d{5}$/'
+                ],
+                'name' => [
+                    'required',
+                    'string',
+                    'min:3'
+                ],
+                'username' => [
+                    'required',
+                    'string',
+                    'min:3',
+                    'unique:users,username',
+                    'regex:/^[a-zA-Z0-9.-]+$/', // Hanya alfanumerik, titik, dan tanda hubung
+                    'regex:/^[a-zA-Z0-9]/',     // Harus diawali huruf atau angka
+                ],
+                'email' => [
+                    'required',
+                    'email',
+                    'unique:users,email',
+                    'regex:/@student\.uns\.ac\.id$/' // Wajib berakhiran @student.uns.ac.id
+                ],
+                'angkatan_id' => [
+                    'required',
+                    'integer' // Sama seperti z.coerce.number
+                ],
+            ]);
 
 
-        // simpan ke database lokal
-        $user = User::create([
-            'username' => $request->username,
-            'nim' => $request->nim,
-            'name' => $request->name,
-            'angkatan_id' => $request->angkatan_id,
-            'email' => $request->email,
-        ]);
+            // simpan ke database lokal
+            $user = User::create([
+                'username' => $request->username,
+                'nim' => $request->nim,
+                'name' => $request->name,
+                'angkatan_id' => $request->angkatan_id,
+                'email' => $request->email,
+            ]);
 
-        return response()->json([
-            'message' => 'User berhasil dibuat',
-            'data' => $user,
-        ]);
+            return response()->json([
+                'message' => 'Successfully added user',
+                'data' => $user,
+            ], 200);
+        } catch (Throwable $th) {
+            return response()->json([
+                'message'=>'An error occurred while creating the user',
+                'error'=>$th->getMessage()
+            ],$th->getCode());
+        }
     }
 
     public function getUserById($id)
@@ -86,26 +92,26 @@ class UserController extends Controller
             $user = User::findOrFail($id);
 
             return response()->json([
-                'message' => 'data berhasil di ambil',
+                'message' => 'Successfully retrieved user data',
                 'data' => new UserByIdResource($user)
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'data tidak ditemukan',
+                'message' => 'User not found',
                 'erroe' => $e->getMessage()
-            ], 404);
+            ], $e->getCode());
         } catch (Throwable $th) {
             return response()->json([
-                'message' => 'Gagal mendapatkan user',
+                'message' => 'GagalFailed to get user',
                 'error' => $th->getMessage()
-            ], 500);
+            ], $th->getCode());
         }
     }
     public function destroy($id)
     {
         if (auth()->id() == $id) {
             return response()->json([
-                'message' => 'Anda tidak dapat menghapus akun Anda sendiri.'
+                'message' => 'You cannot delete your own account.'
             ], 403);
         }
         try {
@@ -113,26 +119,26 @@ class UserController extends Controller
 
             if ($data->vms) {
                 return response()->json([
-                    'message' => 'User tidak dapat dihapus karena masih memiliki VM.'
+                    'message' => 'The user cannot be deleted because it still has a VM.'
                 ], 409);
             }
 
             $data->delete($id);
 
             return response()->json([
-                'message' => 'Berhasil menghapus data'
+                'message' => 'Successfully deleted user.'
             ], 200);
 
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Data Tidak Ditemukan',
+                'message' => 'User not found.',
                 'error' => $e->getMessage()
-            ], 403);
+            ], $e->getCode());
         } catch (Exception $th) {
             return response()->json([
-                'message' => 'Terjadi kesalahan pada server.',
+                'message' => 'An error occurred on the server.',
                 'error' => $th->getMessage()
-            ], 500);
+            ], $th->getCode());
         }
     }
 }

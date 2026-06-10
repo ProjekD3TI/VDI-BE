@@ -17,8 +17,8 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
             $table->foreignId('ip_address_id')->unique()->constrained('ip_addresses')->onDelete('cascade');
             $table->integer('template_id');
-            $table->enum('status', ['running', 'stopped'])->default('stopped');
-            $table->timestamps();
+            $table->enum('status', ['running', 'stopped','failed','creating'])->default('creating');
+        $table->timestamps();
         });
     }
 
