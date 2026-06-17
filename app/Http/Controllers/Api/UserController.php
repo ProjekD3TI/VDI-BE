@@ -10,6 +10,7 @@ use App\Models\User;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 class UserController extends Controller
@@ -17,10 +18,15 @@ class UserController extends Controller
     public function index()
     {
         try {
-            $users = User::with(['vms', 'angkatan'])->where('role', 'user')->get();
+            $users = User::with(['vms', 'angkatan'])->where('role', 'user')->paginate(10);
+
+            $paginatedResponse = $users->toArray();
+
+
+            $paginatedResponse['data'] = UserResource::collection($users)->resolve();
             return response()->json([
                 'message' => 'Successfully retrieved user data',
-                'data' => UserResource::collection($users)
+                'data' => $paginatedResponse
             ], 200);
         } catch (Throwable $th) {
             return response()->json([
@@ -80,9 +86,9 @@ class UserController extends Controller
             ], 200);
         } catch (Throwable $th) {
             return response()->json([
-                'message'=>'An error occurred while creating the user',
-                'error'=>$th->getMessage()
-            ],$th->getCode());
+                'message' => 'An error occurred while creating the user',
+                'error' => $th->getMessage()
+            ], $th->getCode());
         }
     }
 
@@ -109,7 +115,7 @@ class UserController extends Controller
     }
     public function destroy($id)
     {
-        if (auth()->id() == $id) {
+        if (Auth::id() == $id) {
             return response()->json([
                 'message' => 'You cannot delete your own account.'
             ], 403);

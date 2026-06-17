@@ -31,6 +31,7 @@ class IpAddressController extends Controller
         try {
             $availableIps = IpAddress::where('status', 'free')
                 ->select('id', 'ip_address')
+                ->limit(5)
                 ->get();
 
             return response()->json([
