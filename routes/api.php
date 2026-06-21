@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AngkatanController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GuacamoleController;
 use App\Http\Controllers\Api\IpAddressController;
+use App\Http\Controllers\Api\MonitorController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VmController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('me', [AuthController::class, 'me']);
 
     Route::middleware('admin')->group(function () {
+        // =========Monitor===========
+        Route::get('monitor', [MonitorController::class, 'getData']);
+
         // =========VM===========
         Route::get('vms', [VmController::class, 'index']);
         Route::get('vms/template', [VmController::class, 'getTemplate']);
