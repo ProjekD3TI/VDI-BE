@@ -227,6 +227,19 @@ return [
                 'timeout' => 300, // PENTING: Naikkan batas waktu (misal 5 menit) untuk proses pembuatan VM
             ],
         ],
+        'staging' => [
+            'supervisor-1' => [
+                'connection' => 'redis',
+                'queue' => ['default', 'vm-provisioning'], // Membaca antrean default dan vm-provisioning Proxmox Anda
+                'balance' => 'simple',
+                'maxProcesses' => 2,
+                'maxTime' => 0,
+                'maxJobs' => 0,
+                'memory' => 256,
+                'tries' => 1,
+                'timeout' => 300, // Timeout aman 5 menit untuk eksekusi VM
+            ],
+        ],
 
         'local' => [
             'supervisor-1' => [
