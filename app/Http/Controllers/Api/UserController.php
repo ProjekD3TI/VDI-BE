@@ -8,9 +8,11 @@ use App\Http\Resources\UserResource;
 use App\Models\Angkatan;
 use App\Models\User;
 use Exception;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class UserController extends Controller
@@ -18,7 +20,7 @@ class UserController extends Controller
     public function index()
     {
         try {
-            $users = User::with(['vms', 'angkatan'])->where('role', 'user')->paginate(10);
+            $users = User::with(['vms', 'angkatan'])->where('role', 'user')->whereNotNull('email_verified_at')->orderByDesc('created_at')->paginate(10);
 
             $paginatedResponse = $users->toArray();
 
@@ -38,7 +40,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'nim' => [
                     'required',
                     'string',
@@ -55,40 +57,46 @@ class UserController extends Controller
                     'string',
                     'min:3',
                     'unique:users,username',
-                    'regex:/^[a-zA-Z0-9.-]+$/', // Hanya alfanumerik, titik, dan tanda hubung
-                    'regex:/^[a-zA-Z0-9]/',     // Harus diawali huruf atau angka
+                    'regex:/^[a-zA-Z0-9.-]+$/',
+                    'regex:/^[a-zA-Z0-9]/',
                 ],
                 'email' => [
                     'required',
                     'email',
                     'unique:users,email',
-                    'regex:/@student\.uns\.ac\.id$/' // Wajib berakhiran @student.uns.ac.id
+                    'regex:/@student\.uns\.ac\.id$/'
                 ],
                 'angkatan_id' => [
                     'required',
-                    'integer' // Sama seperti z.coerce.number
+                    'integer'
                 ],
             ]);
 
+            $user = User::create($validated);
 
-            // simpan ke database lokal
-            $user = User::create([
-                'username' => $request->username,
-                'nim' => $request->nim,
-                'name' => $request->name,
-                'angkatan_id' => $request->angkatan_id,
-                'email' => $request->email,
-            ]);
+            event(new Registered($user));
+
+            $token = $user->createToken('vdi_auth_token')->plainTextToken;
 
             return response()->json([
-                'message' => 'Successfully added user',
-                'data' => $user,
-            ], 200);
-        } catch (Throwable $th) {
+                'message' => 'Registrasi berhasil',
+                'token' => $token,
+                'user' => $user
+            ], 201);
+
+        } catch (ValidationException $e) {
+
             return response()->json([
-                'message' => 'An error occurred while creating the user',
-                'error' => $th->getMessage()
-            ], $th->getCode());
+                'message' => 'Validation failed',
+                'error' => $e->errors()
+            ], 422);
+
+        } catch (Throwable $e) {
+
+            return response()->json([
+                'message' => 'Internal server error',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 

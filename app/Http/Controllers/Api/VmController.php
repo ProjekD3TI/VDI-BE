@@ -36,6 +36,7 @@ class VmController extends Controller
     {
         try {
             $localVms = Vms::with('ipAddress', 'user')
+                ->orderByDesc('created_at')
                 ->get()
                 ->keyBy('vmid');
 

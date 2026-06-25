@@ -7,10 +7,18 @@ use App\Http\Controllers\Api\IpAddressController;
 use App\Http\Controllers\Api\MonitorController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VmController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login']);
 
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->name('verification.verify');
+
+Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
+    ->middleware('throttle:1,1');
+Route::get('register/angkatan', [AngkatanController::class, 'index']);
+Route::post('register', [UserController::class, 'store']);
 Route::middleware('auth:api')->group(function () {
     // =========AUTH===========
     Route::post('logout', [AuthController::class, 'logout']);
