@@ -12,6 +12,8 @@ tmux split-window -v -t "$SESSION" "php artisan reverb:start"
 
 tmux split-window -v -t "$SESSION" "php artisan app:monitor-proxmox"
 
+tmux split-window -v -t "$SESSION" "mailpit"
+
 tmux select-layout -t "$SESSION" tiled
 
 tmux attach -t "$SESSION"

@@ -12,29 +12,48 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $users = User::with(['vms', 'angkatan'])->where('role', 'user')->whereNotNull('email_verified_at')->orderByDesc('created_at')->paginate(10);
+            $query = User::with(['vms', 'angkatan'])
+                ->where('role', 'user');
+
+            // Search
+            if ($request->filled('search')) {
+                $search = $request->search;
+
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('nim', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            $users = $query
+                ->orderByDesc('created_at')
+                ->paginate(10);
 
             $paginatedResponse = $users->toArray();
 
-
             $paginatedResponse['data'] = UserResource::collection($users)->resolve();
+
             return response()->json([
                 'message' => 'Successfully retrieved user data',
                 'data' => $paginatedResponse
             ], 200);
+
         } catch (Throwable $th) {
             return response()->json([
                 'message' => 'An error occurred while retrieving user data',
                 'error' => $th->getMessage()
-            ], $th->getCode());
+            ], 500);
         }
     }
     public function store(Request $request)
@@ -72,11 +91,15 @@ class UserController extends Controller
                 ],
             ]);
 
+            DB::beginTransaction();
+
             $user = User::create($validated);
 
             event(new Registered($user));
 
             $token = $user->createToken('vdi_auth_token')->plainTextToken;
+
+            DB::commit();
 
             return response()->json([
                 'message' => 'Registrasi berhasil',
@@ -85,14 +108,14 @@ class UserController extends Controller
             ], 201);
 
         } catch (ValidationException $e) {
-
+            DB::rollBack();
             return response()->json([
                 'message' => 'Validation failed',
                 'error' => $e->errors()
             ], 422);
 
         } catch (Throwable $e) {
-
+            DB::rollBack();
             return response()->json([
                 'message' => 'Internal server error',
                 'error' => $e->getMessage()

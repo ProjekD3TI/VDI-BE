@@ -7,13 +7,15 @@ use App\Models\Angkatan;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AngkatanController extends Controller
 {
     public function index()
     {
         try {
-            $data = Angkatan::all();
+            $data = Angkatan::orderByDesc('angkatan')->get();
             return response()->json([
                 'message' => "Berhasil mendapatkan data Angkatan",
                 'data' => $data
@@ -29,18 +31,23 @@ class AngkatanController extends Controller
     {
         try {
             $req->validate([
-                'angkatan' => 'required|integer'
+                'angkatan' => 'required|integer|unique:angkatans,angkatan'
             ]);
             $data = Angkatan::create([
                 'angkatan' => $req->angkatan
             ]);
             return response()->json([
-                'message' => 'berhasil menambahkan angkatan',
+                'message' => 'Data successfully added.',
                 'data' => $data
             ], 201);
-        } catch (Exception $e) {
+        } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'gagal menambahkan angkatan',
+                'message' => 'Validation failed.',
+                'error' => $e->errors()
+            ], 422);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'Internal server error.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -67,7 +74,7 @@ class AngkatanController extends Controller
         try {
 
             $request->validate([
-                'angkatan' => 'required|integer'
+                'angkatan' => 'required|integer|unique:angkatans,angkatan'
             ]);
 
             $data = Angkatan::findOrFail($id);
@@ -76,12 +83,17 @@ class AngkatanController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'berhsil melakukan update angkatan',
+                'message' => 'Success Update data.',
                 'data' => $data
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'error' => $e->errors()
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
-                'message' => 'gagal update angkatan',
+                'message' => 'Internal Server Error.',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -94,16 +106,16 @@ class AngkatanController extends Controller
             $data->delete();
 
             return response()->json([
-                'message' => 'berhasil menghapus angkatan'
+                'message' => 'Success deleting data.'
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Data Tidak Ditemukan',
+                'message' => 'Data not found.',
                 'error' => $e->getMessage()
             ]);
         } catch (Exception $e) {
             return response()->json([
-                'message' => 'Gagal Menghapus angkatan',
+                'message' => 'Failed deleting data.',
                 'error' => $e->getMessage()
             ], 500);
         }

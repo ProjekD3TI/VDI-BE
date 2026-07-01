@@ -27,7 +27,7 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('admin')->group(function () {
         // =========Monitor===========
         Route::get('monitor', [MonitorController::class, 'getData']);
-
+        Route::post('/admin/email/resend', [EmailVerificationController::class, 'resend']);
         // =========VM===========
         Route::get('vms', [VmController::class, 'index']);
         Route::get('vms/template', [VmController::class, 'getTemplate']);

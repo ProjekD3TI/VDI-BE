@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
 
             $temporarySignedUrl = URL::temporarySignedRoute(
                 'verification.verify', // Nama route backend yang akan kita buat di langkah 4
-                now()->addSeconds(10),  // Link kedaluwarsa dalam 60 menit
+                now()->addMinutes(60),  // Link kedaluwarsa dalam 60 menit
                 [
                     'id' => $notifiable->getKey(),
                     'hash' => sha1($notifiable->getEmailForVerification()),

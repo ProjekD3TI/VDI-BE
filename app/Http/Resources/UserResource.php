@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'username' => $this->username,
             'email' => $this->email,
             'nim' => $this->nim,
+            'email_verified_at'=>$this->email_verified_at,
             'vm_status' => $this->vms?->status,
             'vmid'=>$this->vms?->vmid ?? null,
             'angkatan' => $this->angkatan?->angkatan ?? 'Tidak Diketahui',
