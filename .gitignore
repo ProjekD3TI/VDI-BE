@@ -27,3 +27,6 @@ yarn-error.log
 **/caddy
 frankenphp
 frankenphp-worker.php
+
+docker-compose.yaml
+docker-compose copy.yaml
